@@ -65,7 +65,8 @@ class Grid(QWidget):
         Detener cámara
         """
         if self.isCameraStarted:
-            self.window.stopCamera()       
+            self.window.stopCamera()
+            self.isCameraStarted = False
 
     @pyqtSlot()    
     def open_dialog(self):

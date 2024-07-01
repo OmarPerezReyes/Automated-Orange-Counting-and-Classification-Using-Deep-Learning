@@ -77,12 +77,11 @@ class Window(QMainWindow):
 
         self.update()
 
-    def startCamera(self):
-        self.isCameraStarted = True
+    def startCamera(self): 
         self.camera.start()
+        self.camera.resume()        
 
-    def stopCamera(self):                
-        self.isCameraStarted = False
+    def stopCamera(self):        
         self.camera.stop()
 
     def updateCamera(self, width, height):

@@ -60,9 +60,10 @@ class Camera(QThread):
         """
         Detener cámara (hilo)
         """
-        self.isRunning = False        
-        #self.quit()
-        #self.wait()
+        self.isRunning = False
+        
+    def resume(self):
+        self.isRunning = True        
 
     def updateSize(self, w, h):
         """
