@@ -4,6 +4,7 @@ from PyQt6.QtGui import QPainter, QColor, QFont, QBrush, QFont, QImage, QPixmap
 from PyQt6.QtCore import Qt, QPoint, QSize, QRect, pyqtSlot
 
 from camera import *
+from player import *
 
 class Window(QMainWindow):
     """
@@ -30,18 +31,26 @@ class Window(QMainWindow):
     def initUI(self):
         """
         Inicializa los elementos de la interfaz
-        """ 
+        """
+
+        #Determinar si hay algo reproduciendose (Cámara/Reproductor)
+        self.isMediaOpened = [False, False]
+
         # Obtener el ancho y la altura de la ventana
         self.width = self.width()
         self.height = self.height()
 
         # Crear un QLabel para mostrar la imagen
         self.label = QLabel(self)
-        self.label.setGeometry(0, 0, self.width, self.height)        
+        self.label.setGeometry(0, 0, self.width, self.height)   
         
         #Camara
         self.camera = Camera(self.width, self.height)
         self.camera.changePixmap.connect(self.setImage)
+
+        #Reproductor
+        self.player = Player(self.width, self.height)
+        self.player.changePixmap.connect(self.setImage)
 
     def paintEvent(self, event):
         """
@@ -77,12 +86,41 @@ class Window(QMainWindow):
 
         self.update()
 
-    def startCamera(self): 
-        self.camera.start()
-        self.camera.resume()        
+    def startCamera(self):
+        """
+        Iniciar cámara
+        """
+        #Cambiar estado a activo
+        self.isMediaOpened[0] = True
 
-    def stopCamera(self):        
+        #Detener la reproducción de multimedia en caso de que la haya
+        if self.isMediaOpened[1]:
+            self.stopMedia()         
+
+        #Iniciar cámara        
+        self.camera.resume()
+        self.camera.start()        
+
+    def stopCamera(self):      
+        self.isMediaOpened[0] = False
         self.camera.stop()
+
+    def playMedia(self, url):    
+        #Cambiar estado a activo
+        self.isMediaOpened[1] = True
+
+        #Detener la cámara en caso de que esté activa
+        if self.isMediaOpened[0]:
+            self.stopCamera()  
+
+        #Iniciar reproductor                
+        self.player.setUrl(url)
+        self.player.resume()
+        self.player.start()        
+
+    def stopMedia(self):
+        self.isMediaOpened[1] = False
+        self.player.stop()     
 
     def updateCamera(self, width, height):
         """

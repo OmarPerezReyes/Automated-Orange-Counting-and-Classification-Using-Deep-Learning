@@ -26,8 +26,9 @@ class Grid(QWidget):
 
         # Botón para abrir imagenes o videos
         openFileBtn = QPushButton('Seleccionar archivo')
-        #openFileBtn.clicked.connect(lambda: self.open_dialog())
-        openFileBtn.clicked.connect(self.open_dialog)
+        openFileBtn.clicked.connect(lambda: self.window.playMedia(self.open_dialog()))
+        #openFileBtn.clicked.connect(lambda: self.window.playMedia(self.open_dialog()))
+        #openFileBtn.clicked.connect(self.open_dialog)
         
         #Botón para abrir la cámara
         openCameraBtn = QPushButton('Abrir cámara')
@@ -71,7 +72,7 @@ class Grid(QWidget):
     @pyqtSlot()    
     def open_dialog(self):
         """
-        Abrir el archivo ARFF
+        Abrir el contenido multimedia
         Devuelve el path (URL) del archivo selecciondo
         """
 
@@ -81,7 +82,7 @@ class Grid(QWidget):
         #Ejecutar FileDialog para seleccionar archivo
         fname = QFileDialog.getOpenFileName(
             self,
-            "Seleccionar video o imagén",
+            "Seleccionar video o imágen",
             "",
             "Imágenes y videos (*.mp4 *.avi *.mov *.jpg *.jpeg *.png *.bmp)",
         )
