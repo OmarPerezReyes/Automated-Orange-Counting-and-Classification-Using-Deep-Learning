@@ -17,7 +17,23 @@ class Camera(QThread):
         """
         Inicializar elementos de la clase
         """
-        super().__init__()        
+        super().__init__()       
+
+        #Abrir y crear array de clases (COCO)
+        with open('coco.names','rt') as f:
+            self.class_name = f.read().rstrip('\n').split('\n')
+
+        #Path al modelo
+        model = 'ssd_mobilenet_v3_large_coco_2020_01_14.pbtxt'
+        weight = 'frozen_inference_graph.pb'
+
+        #Establever modelo de detección
+        self.model = cv2.dnn_DetectionModel(weight, model)
+        #self.model.setInputSize(320, 320)
+        self.model.setInputSize(450, 450)
+        self.model.setInputScale(1.0 / 127.5)        
+        self.model.setInputMean((127.5, 127.5, 127.5))
+        self.model.setInputSwapRB(True)
 
         #Cámara corriendo
         self.isRunning = True
@@ -37,24 +53,6 @@ class Camera(QThread):
         if not capture.isOpened():
             return
 
-        #Eliminar al finalizar el test
-        with open('coco.names','rt') as f:
-            class_name = f.read().rstrip('\n').split('\n')    
-
-        class_color = []
-        for i in range(len(class_name)):
-            class_color.append((randint(0,255),randint(0,255),randint(0,255)))
-
-        modelPath = 'ssd_mobilenet_v3_large_coco_2020_01_14.pbtxt'
-        weightPath = 'frozen_inference_graph.pb'
-
-        net = cv2.dnn_DetectionModel(weightPath, modelPath)
-        net.setInputSize(320,320)                
-        net.setInputScale(1.0/ 127.5)        
-        net.setInputMean((127.5, 127.5, 127.5))
-        net.setInputSwapRB(True)
-        #Eliminar end
-
         while self.isRunning:
             # Obtener resultado y frame de la captura
             result, frame = capture.read()
@@ -63,13 +61,29 @@ class Camera(QThread):
             if not result:
                 continue
 
-            #Eliminar al finalizar el test            
-            classIds, confs, bbox = net.detect(frame, confThreshold=0.5) 
-            if len(classIds) != 0:        
-                for classId,confidence,box in zip(classIds.flatten(), confs.flatten(), bbox):                    
-                    cv2.rectangle(frame, box, color=class_color[classId-1], thickness=2)
-                    cv2.putText(frame, class_name[classId-1].upper(),(box[0],box[1]-10),cv2.FONT_HERSHEY_COMPLEX_SMALL,1,class_color[classId-1],2)                    
-            #Eliminar
+            #Inicializar contador
+            counter = 0                
+
+            #Detectar objetos en la captura
+            classIds, confs, bbox = self.model.detect(frame, confThreshold=0.25) 
+
+            #Si se detecta algo, se verifica que sea una naranja
+            if len(classIds) != 0:
+
+                #Recorrer objetos de acuerdo a su posición
+                for classId, confidence, box in zip(classIds.flatten(), confs.flatten(), bbox):                         
+                    if classId != 55:
+                        continue
+
+                    #Aumentar contador                                            
+                    counter += 1
+
+                    #Colocar cajas y textos del objeto (naranja)
+                    cv2.rectangle(frame, box, color = (36, 255, 12), thickness = 2)
+                    cv2.putText(frame, self.class_name[classId-1].upper() + ' #' + str(counter), (box[0], box[1] - 10), cv2.FONT_HERSHEY_COMPLEX_SMALL, 2, (36, 255, 12), 2)
+
+            #Colocar contador en la esquina superior izquierda
+            cv2.putText(frame, str(counter), (100, 100), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255) , 2)
             
             # Convertir el frame actual de formato BGR A RGB
             rgbImage = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
