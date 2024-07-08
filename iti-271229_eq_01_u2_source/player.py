@@ -3,6 +3,8 @@ import cv2
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtGui import QImage, QPixmap
 
+from random import randint
+
 class Player(QThread):
     """
     Reproduce los archivos multimedia seleccionados por el usuario
@@ -35,15 +37,17 @@ class Player(QThread):
         """
         Definir URL (Path) del archivo a reproducir
         """
-        self.url = url
+        self.url = url        
 
     def run(self):
-        self.play()
+        self.play()             
 
     def play(self):
         """
         Reproducir multimedia
-        """        
+        """                
+        if self.url == '':
+            return        
 
         # Obtener captura de la url
         capture = ''
@@ -52,11 +56,29 @@ class Player(QThread):
         if self.url != '':   
 
             #Intentar abrir video
-            capture = cv2.VideoCapture(self.url)
+            capture = cv2.VideoCapture(self.url)            
 
             #Si no se puede abrir el video, entonces es una imágen
             if not capture.isOpened():            
-                capture = cv2.imread(self.url)
+                capture = cv2.imread(self.url)        
+
+        #Eliminar al finalizar el test
+        with open('coco.names','rt') as f:
+            class_name = f.read().rstrip('\n').split('\n')    
+
+        class_color = []
+        for i in range(len(class_name)):
+            class_color.append((randint(0,255),randint(0,255),randint(0,255)))
+
+        modelPath = 'ssd_mobilenet_v3_large_coco_2020_01_14.pbtxt'
+        weightPath = 'frozen_inference_graph.pb'
+
+        net = cv2.dnn_DetectionModel(weightPath, modelPath)
+        net.setInputSize(320,320)                
+        net.setInputScale(1.0/ 127.5)        
+        net.setInputMean((127.5, 127.5, 127.5))
+        net.setInputSwapRB(True)
+        #Eliminar end        
 
         while self.isRunning:
             # Obtener resultado y frame de la captura
@@ -64,8 +86,19 @@ class Player(QThread):
 
             # Si no hay resultado de captura, intentar de nuevo
             if not result:             
-                continue
-            
+                continue            
+
+            #Eliminar al finalizar el test            
+            classIds, confs, bbox = net.detect(frame, confThreshold=0.5) 
+            if len(classIds) != 0:        
+                for classId,confidence,box in zip(classIds.flatten(), confs.flatten(), bbox):     
+                    print(classId)
+                    if classId != 55:
+                        break
+                    cv2.rectangle(frame, box, color=class_color[classId-1], thickness=2)
+                    cv2.putText(frame, class_name[classId-1].upper(),(box[0],box[1]-10),cv2.FONT_HERSHEY_COMPLEX_SMALL,1,class_color[classId-1],2)                    
+            #Eliminar
+
             # Convertir el frame actual de formato BGR A RGB
             rgbImage = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             # Tamaños de la imagen RGB
@@ -77,17 +110,17 @@ class Player(QThread):
             p = convertToQtFormat.scaled(self.width, self.height, Qt.AspectRatioMode.IgnoreAspectRatio)
 
             #Actualizar Pixmap
-            self.changePixmap.emit(p)    
+            self.changePixmap.emit(p)
         # Liberar captura
         if type(capture) == cv2.VideoCapture:
             capture.release()
-        cv2.destroyAllWindows()
+        #cv2.destroyAllWindows()
 
     def stop(self):
         """
         Detener reproductor
         """        
-        self.isRunning = False           
+        self.isRunning = False        
 
     def resume(self):        
         self.isRunning = True

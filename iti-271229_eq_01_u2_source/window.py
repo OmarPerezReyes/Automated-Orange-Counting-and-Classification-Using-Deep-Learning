@@ -25,14 +25,15 @@ class Window(QMainWindow):
         Destructor
         Detiene el hilo de la cámara activa y libera la memoria del objeto        
         """        
-        self.stopCamera()
-        del self.camera
+        self.stopCamera()       
+        del self.camera 
+        self.stopMedia()                
+        del self.player
 
     def initUI(self):
         """
         Inicializa los elementos de la interfaz
-        """
-
+        """        
         #Determinar si hay algo reproduciendose (Cámara/Reproductor)
         self.isMediaOpened = [False, False]
 
@@ -55,7 +56,8 @@ class Window(QMainWindow):
     def paintEvent(self, event):
         """
         Dibuja los elementos graficos        
-        """
+        """        
+        
         qp = QPainter()        
                 
         # Inicio QPainter
@@ -112,11 +114,20 @@ class Window(QMainWindow):
         #Detener la cámara en caso de que esté activa
         if self.isMediaOpened[0]:
             self.stopCamera()  
+        
+        #Eliminar reproductor
+        self.player.stop()
+        del self.player
+        
+        #Crear reproductor
+        self.player = Player(self.width, self.height)
+        self.player.changePixmap.connect(self.setImage)
 
-        #Iniciar reproductor                
+        #Iniciar reproductor
+        self.player.stop()
         self.player.setUrl(url)
         self.player.resume()
-        self.player.start()        
+        self.player.start()
 
     def stopMedia(self):
         self.isMediaOpened[1] = False

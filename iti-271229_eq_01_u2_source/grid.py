@@ -26,9 +26,8 @@ class Grid(QWidget):
 
         # Botón para abrir imagenes o videos
         openFileBtn = QPushButton('Seleccionar archivo')
-        openFileBtn.clicked.connect(lambda: self.window.playMedia(self.open_dialog()))
         #openFileBtn.clicked.connect(lambda: self.window.playMedia(self.open_dialog()))
-        #openFileBtn.clicked.connect(self.open_dialog)
+        openFileBtn.clicked.connect(self.open_dialog)
         
         #Botón para abrir la cámara
         openCameraBtn = QPushButton('Abrir cámara')
@@ -87,10 +86,11 @@ class Grid(QWidget):
             "Imágenes y videos (*.mp4 *.avi *.mov *.jpg *.jpeg *.png *.bmp)",
         )
 
-        print(fname[0])
+        if fname:
+            self.window.playMedia(fname[0])
 
         #Devuelve el path (string) del archivo seleccionado
-        return fname[0]            
+        #return fname[0]            
 
     def center(self):
         """

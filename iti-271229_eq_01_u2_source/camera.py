@@ -4,6 +4,8 @@ from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtWidgets import QMessageBox, QApplication, QWidget, QGridLayout, QPushButton, QFileDialog, QLabel
 from PyQt6.QtGui import QImage, QPixmap
 
+from random import randint
+
 class Camera(QThread):
     """
     Clase Camara
@@ -35,6 +37,24 @@ class Camera(QThread):
         if not capture.isOpened():
             return
 
+        #Eliminar al finalizar el test
+        with open('coco.names','rt') as f:
+            class_name = f.read().rstrip('\n').split('\n')    
+
+        class_color = []
+        for i in range(len(class_name)):
+            class_color.append((randint(0,255),randint(0,255),randint(0,255)))
+
+        modelPath = 'ssd_mobilenet_v3_large_coco_2020_01_14.pbtxt'
+        weightPath = 'frozen_inference_graph.pb'
+
+        net = cv2.dnn_DetectionModel(weightPath, modelPath)
+        net.setInputSize(320,320)                
+        net.setInputScale(1.0/ 127.5)        
+        net.setInputMean((127.5, 127.5, 127.5))
+        net.setInputSwapRB(True)
+        #Eliminar end
+
         while self.isRunning:
             # Obtener resultado y frame de la captura
             result, frame = capture.read()
@@ -42,6 +62,14 @@ class Camera(QThread):
             # Si no hay resultado de captura, intentar de nuevo
             if not result:
                 continue
+
+            #Eliminar al finalizar el test            
+            classIds, confs, bbox = net.detect(frame, confThreshold=0.5) 
+            if len(classIds) != 0:        
+                for classId,confidence,box in zip(classIds.flatten(), confs.flatten(), bbox):                    
+                    cv2.rectangle(frame, box, color=class_color[classId-1], thickness=2)
+                    cv2.putText(frame, class_name[classId-1].upper(),(box[0],box[1]-10),cv2.FONT_HERSHEY_COMPLEX_SMALL,1,class_color[classId-1],2)                    
+            #Eliminar
             
             # Convertir el frame actual de formato BGR A RGB
             rgbImage = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -57,13 +85,13 @@ class Camera(QThread):
             self.changePixmap.emit(p)     
         # Liberar captura
         capture.release()
-        cv2.destroyAllWindows()
+        #cv2.destroyAllWindows()
 
     def stop(self):
         """
         Detener cámara (hilo)
         """
-        self.isRunning = False
+        self.isRunning = False        
         
     def resume(self):
         self.isRunning = True    
