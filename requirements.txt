@@ -1,0 +1,2 @@
+opencv-python==4.10.0-3
+pyqt6-python==6.7.0-4
