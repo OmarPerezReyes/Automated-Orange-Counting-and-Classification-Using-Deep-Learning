@@ -1,7 +1,7 @@
 import os
 import cv2
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
-from PyQt6.QtGui import QImage, QPixmap
+from PyQt6.QtGui import QImage, QPixmap, QPainter, QColor, QFont
 
 from random import randint
 
@@ -39,6 +39,10 @@ class Player(QThread):
         #Tamaños de la cámara (label)
         self.width = width
         self.height = height
+
+    def checkFiles(self):
+        pass
+        
 
     def updateSize(self, w, h):
         """
@@ -82,7 +86,7 @@ class Player(QThread):
             # Obtener resultado y frame_copy de la captura        
             result, frame = self.openMedia(capture)
 
-            #Crear copia de la imagen para dibujar sobre ella            
+            #Crear copia de la imagen para dibujar sobre                           
             frame_copy = frame.copy()
 
             # Si no hay resultado de captura, intentar de nuevo
@@ -110,27 +114,54 @@ class Player(QThread):
                     cv2.rectangle(frame_copy, box, color = (36, 255, 12), thickness = 2)                    
 
             #Colocar contador rojo en la esquina superior izquierda
-            cv2.putText(frame_copy, str(counter), (50, 50), cv2.FONT_HERSHEY_COMPLEX_SMALL, 2, (0, 0, 255) , 1)            
+            #cv2.putText(frame_copy, str(counter), (50, 50), cv2.FONT_HERSHEY_COMPLEX_SMALL, 2, (0, 0, 255) , 1)            
 
-            # Convertir el frame_copy actual de formato BGR A RGB
+            #Convertir el frame_copy actual de formato BGR A RGB
             rgbImage = cv2.cvtColor(frame_copy, cv2.COLOR_BGR2RGB)
 
-            # Tamaños de la imagen RGB
+            #Tamaños de la imagen RGB
             h, w, ch = rgbImage.shape
             bytesPerLine = ch * w            
 
             #Convertir captura y redimenzionar a un formato de QT
             convertToQtFormat = QImage(rgbImage.data, w, h, bytesPerLine, QImage.Format.Format_RGB888)            
-            p = convertToQtFormat.scaledToHeight(self.height, Qt.TransformationMode.SmoothTransformation)
+            pix = convertToQtFormat.scaledToHeight(self.height, Qt.TransformationMode.SmoothTransformation)
+
+            #Dibujar contador
+            image = self.setCounter(pix, counter).toImage()
 
             #Actualizar Pixmap
-            self.changePixmap.emit(p)
+            self.changePixmap.emit(image)
 
             cv2.destroyAllWindows()
-        # Liberar captura
+        #Liberar captura
         if type(capture) == cv2.VideoCapture:
             capture.release()
         #cv2.destroyAllWindows()
+
+    def setCounter(self, pix, counter):
+        """
+        Dibuja/imprime el contador en la imagen
+        """
+        # Crear un QPixmap
+        pixmap = QPixmap.fromImage(pix)
+        
+        # Inicio QPainter
+        painter = QPainter(pixmap)
+        painter.setPen(QColor(255, 0, 0))  # Color del texto en rojo
+        
+        # Configurar el tamaño del font
+        font = QFont()
+        font.setPointSize(25)
+        painter.setFont(font)
+        
+        # Dibujar el contador en la esquina superior izquierda
+        painter.drawText(50, 50, str(counter))
+        
+        # Fin QPainter
+        painter.end()
+
+        return pixmap
 
     def stop(self):
         """
