@@ -79,11 +79,10 @@ class Camera(QThread):
                     counter += 1
 
                     #Colocar cajas y textos del objeto (naranja)
-                    cv2.rectangle(frame, box, color = (36, 255, 12), thickness = 2)
-                    cv2.putText(frame, self.class_name[classId-1].upper() + ' #' + str(counter), (box[0], box[1] - 10), cv2.FONT_HERSHEY_COMPLEX_SMALL, 2, (36, 255, 12), 2)
+                    cv2.rectangle(frame, box, color = (36, 255, 12), thickness = 2)                    
 
             #Colocar contador en la esquina superior izquierda
-            cv2.putText(frame, str(counter), (100, 100), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255) , 2)
+            cv2.putText(frame, str(counter), (100, 100), cv2.FONT_HERSHEY_COMPLEX_SMALL, 2, (0, 0, 255) , 2)
             
             # Convertir el frame actual de formato BGR A RGB
             rgbImage = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -92,8 +91,8 @@ class Camera(QThread):
             bytesPerLine = ch * w        
 
             #Convertir captura a un formato de QT    
-            convertToQtFormat = QImage(rgbImage.data, w, h, bytesPerLine, QImage.Format.Format_RGB888)
-            p = convertToQtFormat.scaled(self.width, self.height, Qt.AspectRatioMode.IgnoreAspectRatio)
+            convertToQtFormat = QImage(rgbImage.data, w, h, bytesPerLine, QImage.Format.Format_RGB888)            
+            p = convertToQtFormat.scaledToHeight(self.height, Qt.TransformationMode.SmoothTransformation)
 
             #Actualizar Pixmap
             self.changePixmap.emit(p)     
