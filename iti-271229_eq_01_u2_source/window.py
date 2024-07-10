@@ -19,16 +19,6 @@ class Window(QMainWindow):
         super().__init__()        
         self.initUI()
         self.setStyleSheet("background-color: black;")
-    
-    def __del__(self):        
-        """
-        Destructor
-        Detiene el hilo de la cámara activa y libera la memoria del objeto        
-        """        
-        self.stopCamera()       
-        del self.camera 
-        self.stopMedia()                
-        del self.player
 
     def initUI(self):
         """
@@ -72,7 +62,31 @@ class Window(QMainWindow):
         """
         Actualizar imagen de la cámara
         """
-        self.label.setPixmap(QPixmap.fromImage(image))
+        pixmap = QPixmap.fromImage(image)
+
+        # Obtener el tamaño del QLabel
+        label_size = self.label.size()
+
+        # Crear un QPixmap del tamaño del QLabel y blanco para el fondo
+        result_pixmap = QPixmap(label_size)
+        result_pixmap.fill(Qt.GlobalColor.black)
+
+        # Crear un QPainter para dibujar en el QPixmap
+        painter = QPainter(result_pixmap)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+
+        # Calcular la posición para centrar la imagen en el QLabel
+        center_x = (label_size.width() - pixmap.width()) // 2
+        center_y = (label_size.height() - pixmap.height()) // 2
+
+        # Dibujar la imagen centrada en el QPixmap
+        painter.drawPixmap(center_x, center_y, pixmap)
+
+        # Finalizar la pintura
+        painter.end()
+
+        # Establecer el QPixmap resultante en el QLabel
+        self.label.setPixmap(result_pixmap)
 
     def resizeEvent(self, event):
         """
@@ -85,6 +99,7 @@ class Window(QMainWindow):
 
         # Actualizar el tamaño de la cámara
         self.updateCamera(width, height)
+        self.updatePlayer(width, height)
 
         self.update()
 
@@ -105,7 +120,7 @@ class Window(QMainWindow):
 
     def stopCamera(self):      
         self.isMediaOpened[0] = False
-        self.camera.stop()
+        self.camera.stop()        
 
     def playMedia(self, url):    
         #Cambiar estado a activo
@@ -131,10 +146,13 @@ class Window(QMainWindow):
 
     def stopMedia(self):
         self.isMediaOpened[1] = False
-        self.player.stop()     
+        self.player.stop()             
 
     def updateCamera(self, width, height):
         """
         Actualiza los valores de la camara
         """
         self.camera.updateSize(width, height)        
+
+    def updatePlayer(self, width, height):
+        self.player.updateSize(width, height)

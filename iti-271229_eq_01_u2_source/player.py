@@ -70,26 +70,30 @@ class Player(QThread):
         #Abrir captura solo si hay una URL (Path) disponible
         if self.url != '':   
 
-            #Intentar abrir video
-            capture = cv2.VideoCapture(self.url)            
+            #Determinar la extesnión
+            file_name, extension = os.path.splitext(self.url) 
 
-            #Si no se puede abrir el video, entonces es una imágen
-            if not capture.isOpened():            
-                capture = cv2.imread(self.url)                    
-
+            if extension in ['.jpg', '.jpeg', '.png']:
+                capture = cv2.imread(self.url)
+            else:            
+                capture = cv2.VideoCapture(self.url)        
+            
         while self.isRunning:
-            # Obtener resultado y frame de la captura
+            # Obtener resultado y frame_copy de la captura        
             result, frame = self.openMedia(capture)
 
+            #Crear copia de la imagen para dibujar sobre ella            
+            frame_copy = frame.copy()
+
             # Si no hay resultado de captura, intentar de nuevo
-            if not result:             
-                continue          
+            if not result:                
+                continue            
 
             #Inicializar contador
-            counter = 0                  
+            counter = 0
 
             #Detectar objetos en la captura
-            classIds, confs, bbox = self.model.detect(frame, confThreshold=0.5) 
+            classIds, confs, bbox = self.model.detect(frame_copy, confThreshold=0.5) 
 
             #Si se detecta algo, se verifica que sea una naranja
             if len(classIds) != 0:                
@@ -103,24 +107,26 @@ class Player(QThread):
                     counter += 1
 
                     #Colocar cajas y textos del objeto (naranja)
-                    cv2.rectangle(frame, box, color = (36, 255, 12), thickness = 2)
-                    cv2.putText(frame, self.class_name[classId-1].upper() + ' #' + str(counter), (box[0], box[1] - 10), cv2.FONT_HERSHEY_COMPLEX_SMALL, 2, (36, 255, 12), 2)
+                    cv2.rectangle(frame_copy, box, color = (36, 255, 12), thickness = 2)                    
 
-            #Colocar contador en la esquina superior izquierda
-            cv2.putText(frame, str(counter), (100, 100), cv2.FONT_HERSHEY_COMPLEX, 3, (0, 0, 255) , 1)
+            #Colocar contador rojo en la esquina superior izquierda
+            cv2.putText(frame_copy, str(counter), (50, 50), cv2.FONT_HERSHEY_COMPLEX_SMALL, 2, (0, 0, 255) , 1)            
 
-            # Convertir el frame actual de formato BGR A RGB
-            rgbImage = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            # Convertir el frame_copy actual de formato BGR A RGB
+            rgbImage = cv2.cvtColor(frame_copy, cv2.COLOR_BGR2RGB)
+
             # Tamaños de la imagen RGB
             h, w, ch = rgbImage.shape
             bytesPerLine = ch * w            
 
-            #Convertir captura a un formato de QT    
-            convertToQtFormat = QImage(rgbImage.data, w, h, bytesPerLine, QImage.Format.Format_RGB888)
-            p = convertToQtFormat.scaled(self.width, self.height, Qt.AspectRatioMode.IgnoreAspectRatio)
+            #Convertir captura y redimenzionar a un formato de QT
+            convertToQtFormat = QImage(rgbImage.data, w, h, bytesPerLine, QImage.Format.Format_RGB888)            
+            p = convertToQtFormat.scaledToHeight(self.height, Qt.TransformationMode.SmoothTransformation)
 
             #Actualizar Pixmap
             self.changePixmap.emit(p)
+
+            cv2.destroyAllWindows()
         # Liberar captura
         if type(capture) == cv2.VideoCapture:
             capture.release()
@@ -130,7 +136,9 @@ class Player(QThread):
         """
         Detener reproductor
         """        
-        self.isRunning = False        
+        self.isRunning = False       
+        self.quit()
+        self.wait()
 
     def resume(self):        
         self.isRunning = True
@@ -140,12 +148,11 @@ class Player(QThread):
         Determinar el tipo de archivo
         """
         #Devolver falso en caso de que no haya una URL (Path)
-        if self.url == '':
+        if self.url == '':            
             return False, capture
-
-        #Determinar el tipo de archivo
-        if type(capture) == cv2.VideoCapture: #Video            
-            result, frame = capture.read()
-            return result, frame
-        else:
+        
+        if type(capture) == cv2.VideoCapture: #Video
+            result, frame_copy = capture.read()
+            return result, frame_copy
+        else:            
             return True, capture #Imágenes

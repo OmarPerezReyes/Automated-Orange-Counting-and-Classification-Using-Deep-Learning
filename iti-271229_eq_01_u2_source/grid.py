@@ -83,7 +83,7 @@ class Grid(QWidget):
             self,
             "Seleccionar video o imágen",
             "",
-            "Imágenes y videos (*.mp4 *.avi *.mov *.jpg *.jpeg *.png *.bmp)",
+            "Imágenes y videos (*.mp4 *.jpg *.jpeg *.png)",
         )
 
         if fname:

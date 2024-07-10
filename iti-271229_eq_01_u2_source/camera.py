@@ -17,7 +17,7 @@ class Camera(QThread):
         """
         Inicializar elementos de la clase
         """
-        super().__init__()       
+        super().__init__()
 
         #Abrir y crear array de clases (COCO)
         with open('coco.names','rt') as f:
@@ -40,7 +40,7 @@ class Camera(QThread):
 
         #Tamaños de la cámara (label)
         self.width = width
-        self.height = height 
+        self.height = height         
 
     def run(self):
         """
@@ -105,7 +105,8 @@ class Camera(QThread):
         """
         Detener cámara (hilo)
         """
-        self.isRunning = False        
+        self.isRunning = False   
+        self.wait()      
         
     def resume(self):
         self.isRunning = True    
