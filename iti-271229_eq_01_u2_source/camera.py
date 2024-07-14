@@ -2,9 +2,9 @@ import os
 import cv2
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtWidgets import QMessageBox, QApplication, QWidget, QGridLayout, QPushButton, QFileDialog, QLabel
-from PyQt6.QtGui import QImage, QPixmap
+from PyQt6.QtGui import QImage, QPixmap, QPainter, QColor, QFont
 
-from random import randint
+from math import sqrt
 
 class Camera(QThread):
     """
@@ -70,19 +70,53 @@ class Camera(QThread):
             #Si se detecta algo, se verifica que sea una naranja
             if len(classIds) != 0:
 
-                #Recorrer objetos de acuerdo a su posición
-                for classId, confidence, box in zip(classIds.flatten(), confs.flatten(), bbox):                         
+                #Lista de cajas detectadas
+                boxes = []                
+
+                #Recorrer todos los oobjetos detectados por la API
+                for classId, box in zip(classIds.flatten(), bbox):                    
                     if classId != 55:
                         continue
+                    #Agregar a la lista solo las naranjas detectadas
+                    boxes.append(box)
 
-                    #Aumentar contador                                            
-                    counter += 1
+                #Lista de naranjas detectadas
+                oranges = []
 
-                    #Colocar cajas y textos del objeto (naranja)
-                    cv2.rectangle(frame, box, color = (36, 255, 12), thickness = 2)                    
+                #Recorrer las naranjas para determinar que no se intersecten las detecciones (recuadros)
+                for i in range(len(boxes)):
+                    #Agregar la primera naranja detectada
+                    if not oranges:
+                        oranges.append(boxes[i])
 
-            #Colocar contador en la esquina superior izquierda
-            cv2.putText(frame, str(counter), (100, 100), cv2.FONT_HERSHEY_COMPLEX_SMALL, 2, (0, 0, 255) , 2)
+                    #Determinar si las demás naranjas detectadas de intersectan con las naranjas guardadas
+                    else:
+                        keep = True
+
+                        #Recorrer las detecciones y compararlas con las ya guardadas
+                        for orange in oranges:
+                            #Valores de la detección no guardada
+                            x1, y1, w1, h1 = boxes[i]
+
+                            # Valores de la naranja/detección guardada
+                            x2, y2, w2, h2 = orange
+
+                            #Distancia entre los rectangulos (hipotenusa)
+                            #h = sqrt(a^2 + b^2)
+                            hypotenuse = sqrt((x1 - x2)**2 + (y1 - y2)**2)
+
+                            #Ignorar caja detectada no guardada si está muy cerca (mitad del ancho y mitad del largo)
+                            #de alguna caja ya guaradada
+                            if hypotenuse < max(w1 // 2, w2 //2) or hypotenuse < max(h1 // 2, h2 // 2):
+                                keep = False
+                                break
+                        if keep:
+                            oranges.append(boxes[i])
+
+                # Dibujar las detecciones
+                for orange in oranges:                    
+                    cv2.rectangle(frame, orange, color=(36, 255, 12), thickness=2)
+                    counter += 1                  
             
             # Convertir el frame actual de formato BGR A RGB
             rgbImage = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -92,13 +126,40 @@ class Camera(QThread):
 
             #Convertir captura a un formato de QT    
             convertToQtFormat = QImage(rgbImage.data, w, h, bytesPerLine, QImage.Format.Format_RGB888)            
-            p = convertToQtFormat.scaledToHeight(self.height, Qt.TransformationMode.SmoothTransformation)
+            pix = convertToQtFormat.scaledToHeight(self.height, Qt.TransformationMode.SmoothTransformation)
+
+            #Dibujar contador
+            image = self.setCounter(pix, counter).toImage()
 
             #Actualizar Pixmap
-            self.changePixmap.emit(p)     
+            self.changePixmap.emit(image)     
         # Liberar captura
         capture.release()
         #cv2.destroyAllWindows()
+
+    def setCounter(self, pix, counter):
+        """
+        Dibuja/imprime el contador en la imagen
+        """
+        # Crear un QPixmap
+        pixmap = QPixmap.fromImage(pix)
+        
+        # Inicio QPainter
+        painter = QPainter(pixmap)
+        painter.setPen(QColor(255, 0, 0))  # Color del texto en rojo
+        
+        # Configurar el tamaño del font
+        font = QFont()
+        font.setPointSize(25)
+        painter.setFont(font)
+        
+        # Dibujar el contador en la esquina superior izquierda
+        painter.drawText(50, 50, str(counter))
+        
+        # Fin QPainter
+        painter.end()
+
+        return pixmap
 
     def stop(self):
         """

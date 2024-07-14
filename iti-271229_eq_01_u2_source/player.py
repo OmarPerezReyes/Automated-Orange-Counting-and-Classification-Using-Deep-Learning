@@ -6,8 +6,6 @@ import numpy as np
 
 from math import sqrt
 
-from random import randint
-
 class Player(QThread):
     """
     Reproduce los archivos multimedia seleccionados por el usuario
