@@ -2,6 +2,9 @@ import os
 import cv2
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtGui import QImage, QPixmap, QPainter, QColor, QFont
+import numpy as np
+
+from math import sqrt
 
 from random import randint
 
@@ -100,21 +103,55 @@ class Player(QThread):
             classIds, confs, bbox = self.model.detect(frame_copy, confThreshold=0.5) 
 
             #Si se detecta algo, se verifica que sea una naranja
-            if len(classIds) != 0:                
+            if len(classIds) != 0:     
+                
+                #Lista de cajas detectadas
+                boxes = []                
 
-                #Recorrer objetos de acuerdo a su posición
-                for classId, confidence, box in zip(classIds.flatten(), confs.flatten(), bbox):                         
+                #Recorrer todos los oobjetos detectados por la API
+                for classId, box in zip(classIds.flatten(), bbox):                    
                     if classId != 55:
                         continue
+                    #Agregar a la lista solo las naranjas detectadas
+                    boxes.append(box)
 
-                    #Aumentar contador
-                    counter += 1
+                #Lista de naranjas detectadas
+                oranges = []
 
-                    #Colocar cajas y textos del objeto (naranja)
-                    cv2.rectangle(frame_copy, box, color = (36, 255, 12), thickness = 2)                    
+                #Recorrer las naranjas para determinar que no se intersecten las detecciones (recuadros)
+                for i in range(len(boxes)):
+                    #Agregar la primera naranja detectada
+                    if not oranges:
+                        oranges.append(boxes[i])
 
-            #Colocar contador rojo en la esquina superior izquierda
-            #cv2.putText(frame_copy, str(counter), (50, 50), cv2.FONT_HERSHEY_COMPLEX_SMALL, 2, (0, 0, 255) , 1)            
+                    #Determinar si las demás naranjas detectadas de intersectan con las naranjas guardadas
+                    else:
+                        keep = True
+
+                        #Recorrer las detecciones y compararlas con las ya guardadas
+                        for orange in oranges:
+                            #Valores de la detección no guardada
+                            x1, y1, w1, h1 = boxes[i]
+
+                            # Valores de la naranja/detección guardada
+                            x2, y2, w2, h2 = orange
+
+                            #Distancia entre los rectangulos (hipotenusa)
+                            #h = sqrt(a^2 + b^2)
+                            hypotenuse = sqrt((x1 - x2)**2 + (y1 - y2)**2)
+
+                            #Ignorar caja detectada no guardada si está muy cerca (mitad del ancho y mitad del largo)
+                            #de alguna caja ya guaradada
+                            if hypotenuse < max(w1 // 2, w2 //2) or hypotenuse < max(h1 // 2, h2 // 2):
+                                keep = False
+                                break
+                        if keep:
+                            oranges.append(boxes[i])
+
+                # Dibujar las detecciones
+                for orange in oranges:                    
+                    cv2.rectangle(frame_copy, orange, color=(36, 255, 12), thickness=2)
+                    counter += 1                           
 
             #Convertir el frame_copy actual de formato BGR A RGB
             rgbImage = cv2.cvtColor(frame_copy, cv2.COLOR_BGR2RGB)
