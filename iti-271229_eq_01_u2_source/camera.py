@@ -35,12 +35,17 @@ class Camera(QThread):
         self.model.setInputMean((127.5, 127.5, 127.5))
         self.model.setInputSwapRB(True)
 
+        self.confidence = 0.5
+
         #Cámara corriendo
         self.isRunning = True
 
         #Tamaños de la cámara (label)
         self.width = width
-        self.height = height         
+        self.height = height  
+
+    def updateConfidence(self, confidence):
+        self.confidence = confidence       
 
     def run(self):
         """
@@ -64,8 +69,10 @@ class Camera(QThread):
             #Inicializar contador
             counter = 0                
 
+            print(self.confidence)
+
             #Detectar objetos en la captura
-            classIds, confs, bbox = self.model.detect(frame, confThreshold=0.25) 
+            classIds, confs, bbox = self.model.detect(frame, confThreshold=self.confidence) 
 
             #Si se detecta algo, se verifica que sea una naranja
             if len(classIds) != 0:
@@ -165,10 +172,12 @@ class Camera(QThread):
         """
         Detener cámara (hilo)
         """
-        self.isRunning = False   
-        self.wait()      
+        self.isRunning = False            
         
     def resume(self):
+        """
+        Reanudar la cámara
+        """
         self.isRunning = True    
 
     def updateSize(self, w, h):

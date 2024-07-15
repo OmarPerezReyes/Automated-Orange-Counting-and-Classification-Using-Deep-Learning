@@ -11,25 +11,26 @@ class Window(QMainWindow):
     Clase Window
     Se encarga de dibujar los datos
     """
-    def __init__(self):
+    def __init__(self, width, height):
         """
         Constructor
         Inicializa los elementos de la clase (objeto)
         """             
-        super().__init__()        
+        super().__init__()             
+        self.width = width
+        self.height = height
         self.initUI()
         self.setStyleSheet("background-color: black;")
 
     def initUI(self):
         """
         Inicializa los elementos de la interfaz
-        """        
-        #Determinar si hay algo reproduciendose (Cámara/Reproductor)
-        self.isMediaOpened = [False, False]
+        """ 
+        # Establecer el tamaño de la ventana
+        self.setGeometry(0, 0, self.width, self.height)
 
-        # Obtener el ancho y la altura de la ventana
-        self.width = self.width()
-        self.height = self.height()
+        #Determinar si hay algo reproduciendose (Cámara/Reproductor)
+        self.isMediaOpened = [False, False] 
 
         # Crear un QLabel para mostrar la imagen
         self.label = QLabel(self)
@@ -88,6 +89,19 @@ class Window(QMainWindow):
         # Establecer el QPixmap resultante en el QLabel
         self.label.setPixmap(result_pixmap)
 
+    def updateConfidence(self, confidence):
+        """
+        Actualiza la confianza del modelo del reproductor o la camara
+        """        
+        if self.isMediaOpened[0]:
+            self.camera.stop()            
+            self.camera.updateConfidence(confidence)
+            self.camera.resume()
+        else:
+            self.player.stop()            
+            self.player.updateConfidence(confidence)
+            self.player.resume()            
+
     def resizeEvent(self, event):
         """
         Actualiza los elementos de la ventana al redimensionar la pantalla
@@ -145,6 +159,9 @@ class Window(QMainWindow):
         self.player.start()
 
     def stopMedia(self):
+        """
+        Detiene la reproducción multimedia
+        """
         self.isMediaOpened[1] = False
         self.player.stop()             
 
@@ -155,4 +172,7 @@ class Window(QMainWindow):
         self.camera.updateSize(width, height)        
 
     def updatePlayer(self, width, height):
+        """
+        Actualiza el tamaño de la ventana y el contenido
+        """
         self.player.updateSize(width, height)

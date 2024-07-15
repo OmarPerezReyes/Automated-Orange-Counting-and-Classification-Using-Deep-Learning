@@ -1,6 +1,6 @@
 import os
 import cv2
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
+from PyQt6.QtCore import Qt, QThread, pyqtSignal, QMutex
 from PyQt6.QtGui import QImage, QPixmap, QPainter, QColor, QFont
 import numpy as np
 
@@ -10,7 +10,6 @@ class Player(QThread):
     """
     Reproduce los archivos multimedia seleccionados por el usuario
     """
-
     changePixmap = pyqtSignal(QImage)
 
     def __init__(self, width, height):
@@ -31,6 +30,9 @@ class Player(QThread):
         self.model.setInputMean((127.5, 127.5, 127.5))
         self.model.setInputSwapRB(True)
 
+        #Confianza por defecto
+        self.confidence = 0.5
+
         #URL del archivo multimedia a reproducir
         self.url = ''
 
@@ -40,10 +42,6 @@ class Player(QThread):
         #Tamaños de la cámara (label)
         self.width = width
         self.height = height
-
-    def checkFiles(self):
-        pass
-        
 
     def updateSize(self, w, h):
         """
@@ -60,7 +58,13 @@ class Player(QThread):
         self.url = url        
 
     def run(self):
-        self.play()             
+        """
+        Método por defecto para correr el hilo
+        """        
+        self.play()     
+
+    def updateConfidence(self, confidence):
+        self.confidence = confidence
 
     def play(self):
         """
@@ -97,8 +101,10 @@ class Player(QThread):
             #Inicializar contador
             counter = 0
 
+            print('Confianza: ', self.confidence)
+
             #Detectar objetos en la captura
-            classIds, confs, bbox = self.model.detect(frame_copy, confThreshold=0.5) 
+            classIds, confs, bbox = self.model.detect(frame_copy, confThreshold=self.confidence) 
 
             #Si se detecta algo, se verifica que sea una naranja
             if len(classIds) != 0:     
@@ -140,7 +146,7 @@ class Player(QThread):
 
                             #Ignorar caja detectada no guardada si está muy cerca (mitad del ancho y mitad del largo)
                             #de alguna caja ya guaradada
-                            if hypotenuse < max(w1 // 2, w2 //2) or hypotenuse < max(h1 // 2, h2 // 2):
+                            if hypotenuse < max(w1 // 2, w2 //2) and hypotenuse < max(h1 // 2, h2 // 2):
                                 keep = False
                                 break
                         if keep:
@@ -148,19 +154,26 @@ class Player(QThread):
 
                 # Dibujar las detecciones
                 for orange in oranges:                    
+                    counter += 1
                     cv2.rectangle(frame_copy, orange, color=(36, 255, 12), thickness=2)
-                    counter += 1                           
+                    x, y = orange[2:4]
+                    cv2.putText(frame_copy, str(counter), (x, y), cv2.FONT_HERSHEY_SIMPLEX, 2, color=(0,0,255))
 
             #Convertir el frame_copy actual de formato BGR A RGB
             rgbImage = cv2.cvtColor(frame_copy, cv2.COLOR_BGR2RGB)
 
             #Tamaños de la imagen RGB
             h, w, ch = rgbImage.shape
-            bytesPerLine = ch * w            
+            bytesPerLine = ch * w
 
             #Convertir captura y redimenzionar a un formato de QT
-            convertToQtFormat = QImage(rgbImage.data, w, h, bytesPerLine, QImage.Format.Format_RGB888)            
-            pix = convertToQtFormat.scaledToHeight(self.height, Qt.TransformationMode.SmoothTransformation)
+            convertToQtFormat = QImage(rgbImage.data, w, h, bytesPerLine, QImage.Format.Format_RGB888)                        
+
+            #Escalar frame de imagen dependiendo de si la imagen es mayor a la resoluación de la pantalla actual
+            if self.width <= frame.shape[0] or self.height <= frame.shape[1]:
+                pix = convertToQtFormat.scaled(self.width, self.height, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            else:
+                pix = convertToQtFormat.scaledToHeight(self.height, Qt.TransformationMode.SmoothTransformation)            
 
             #Dibujar contador
             image = self.setCounter(pix, counter).toImage()
@@ -202,11 +215,12 @@ class Player(QThread):
         """
         Detener reproductor
         """        
-        self.isRunning = False       
-        self.quit()
-        self.wait()
+        self.isRunning = False               
 
-    def resume(self):        
+    def resume(self):
+        """
+        Reanudar el reproductor
+        """      
         self.isRunning = True
 
     def openMedia(self, capture):
