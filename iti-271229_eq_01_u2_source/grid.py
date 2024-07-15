@@ -25,13 +25,14 @@ class Grid(QWidget):
         grid = QGridLayout()        
 
         # Botón para abrir imagenes o videos
-        openFileBtn = QPushButton('Seleccionar archivo')        
+        openFileBtn = QPushButton('Seleccionar multimedia')        
         openFileBtn.clicked.connect(self.open_dialog)
         
         #Botón para abrir la cámara
         openCameraBtn = QPushButton('Abrir cámara')
         openCameraBtn.clicked.connect(self.openCamera)
 
+        #Slide para modificar la confianza del modelo a gusto del usuario
         self.setConfidenceSlider = QSlider()     
         self.setConfidenceSlider.setOrientation(Qt.Orientation.Horizontal)
         self.setConfidenceSlider.setRange(25, 75)
@@ -41,6 +42,7 @@ class Grid(QWidget):
         self.setConfidenceSlider.setTickPosition(QSlider.TickPosition.TicksAbove)
         self.setConfidenceSlider.valueChanged.connect(self.updateConfidence)
 
+        #Label donde se desplega la confianza actual del modelo
         self.conficenceLbl = QLabel('Confianza: 50')
         
         #Layout horizontal
@@ -108,7 +110,7 @@ class Grid(QWidget):
             "Imágenes y videos (*.mp4 *.jpg *.jpeg *.png)",
         )
 
-        #Si se selecciona una archivo se reproduce
+        #Si se selecciona una archivo, se comienza con la reproducción
         if fname:
             self.setConfidenceSlider.setValue(50)
             self.window.playMedia(fname[0])            

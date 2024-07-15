@@ -64,6 +64,9 @@ class Player(QThread):
         self.play()     
 
     def updateConfidence(self, confidence):
+        """
+        Actualiza la confiaza del modelo
+        """
         self.confidence = confidence
 
     def play(self):
@@ -100,8 +103,6 @@ class Player(QThread):
 
             #Inicializar contador
             counter = 0
-
-            print('Confianza: ', self.confidence)
 
             #Detectar objetos en la captura
             classIds, confs, bbox = self.model.detect(frame_copy, confThreshold=self.confidence) 
@@ -156,8 +157,8 @@ class Player(QThread):
                 for orange in oranges:                    
                     counter += 1
                     cv2.rectangle(frame_copy, orange, color=(36, 255, 12), thickness=2)
-                    x, y = orange[2:4]
-                    cv2.putText(frame_copy, str(counter), (x, y), cv2.FONT_HERSHEY_SIMPLEX, 2, color=(0,0,255))
+                    #x, y = orange[2:4]
+                    #cv2.putText(frame_copy, str(counter), (x, y), cv2.FONT_HERSHEY_SIMPLEX, 2, color=(0,0,255))
 
             #Convertir el frame_copy actual de formato BGR A RGB
             rgbImage = cv2.cvtColor(frame_copy, cv2.COLOR_BGR2RGB)

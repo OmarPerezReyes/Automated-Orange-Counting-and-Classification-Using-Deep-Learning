@@ -45,6 +45,9 @@ class Camera(QThread):
         self.height = height  
 
     def updateConfidence(self, confidence):
+        """
+        Actualiza la confianza del modelo
+        """
         self.confidence = confidence       
 
     def run(self):
@@ -67,9 +70,7 @@ class Camera(QThread):
                 continue
 
             #Inicializar contador
-            counter = 0                
-
-            print(self.confidence)
+            counter = 0
 
             #Detectar objetos en la captura
             classIds, confs, bbox = self.model.detect(frame, confThreshold=self.confidence) 
